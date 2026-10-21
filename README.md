@@ -5,7 +5,7 @@ Documented cloud security investigations, built in a live Azure tenant
 
 Target role: SOC Analyst / Security Analyst
 Currently: [your role] | [City / Remote]
-Contact: nath089newton@gmail.com · [[LinkedIn URL](https://www.linkedin.com/in/newton-nath-977671180/)]
+Contact: [[email](nath089newton@gmail.com)] · [[LinkedIn URL](https://www.linkedin.com/in/newton-nath-977671180/)]
 
 ## Investigations
 | # | Title | Focus | Write-up |
