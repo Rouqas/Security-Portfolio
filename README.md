@@ -3,9 +3,9 @@
 Documented cloud security investigations, built in a live Azure tenant
 (Mad Hat Labs, a multi-user training environment).
 
-Target role: SOC Analyst / Security Analyst
-Location:  [London,Uk / Remote]
-Contact: [[email](nath089newton@gmail.com)] · [[LinkedIn URL](https://www.linkedin.com/in/newton-nath-977671180/)]
+Target role: SOC Analyst / Security Analyst |
+Location:  [London,Uk / Remote] |
+Contact: [email](nath089newton@gmail.com) · [LinkedIn URL](https://www.linkedin.com/in/newton-nath-977671180/)
 
 ## Investigations
 | # | Title | Focus | Write-up |
