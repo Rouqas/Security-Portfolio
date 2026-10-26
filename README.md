@@ -5,12 +5,12 @@ Documented cloud security investigations, built in a live Azure tenant
 
 Target role: SOC Analyst / Security Analyst  |
 Location:  London,Uk / Remote  |
-Contact: [email](nath089newton@gmail.com) · [LinkedIn URL](https://www.linkedin.com/in/newton-nath-977671180/)
+Contact: [email](nath089newton@gmail.com) · [LinkedIn](https://www.linkedin.com/in/newton-nath-977671180/)
 
 ## Investigations
 | # | Title | Focus | Write-up |
 |---|-------|-------|----------|
-| 1 | Operation Dead Deploy | Governance forensics, deployment audit trail | coming, week 1 |
+| 1 | Operation Dead Deploy | Governance forensics, deployment audit trail | [open week 1](/investigation/W1-Operation-Dead-Deploy.md) |
 | 2 | The Stolen Identity | App registration attack kill chain (Entra ID) | coming, week 2 |
 | 3 | Privilege Audit | RBAC and least privilege | coming, week 3 |
 | 4 | Spin Up and Lock Down | Compute attack surface | coming, week 4 |
