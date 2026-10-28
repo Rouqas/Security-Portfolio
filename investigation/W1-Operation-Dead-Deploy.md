@@ -12,21 +12,28 @@ Live multi-user Azure training tenant, Reader access
 
 ### Stage 1: Identify the non-compilant resource group
  Under our designated subscription while scanning the resource groups, i found a resource group which didn't follow the Microsoft's naming convention. The resource group name was: **testdeploy123**. The naming format of this resource group didn't match with other existing resource groups in our subscription.
+ 
 ![naming_discrepency](/evidence/w1_naming_discrepency.png)
 
 ### Stage 2: Inspect the payload
  Under **testdeploy123** resource group, only one resource was found. I found Several tags under this resource: owner, cost-center and intern-flag and environment. These tags told me this resource was deployed by a company intern.
+ 
 ![found_resource](/evidence/w1_found_resource.png)
+
 ![resource_tags](/evidence/w1_resource_tags.png)
 
 ### Stage 3: Trace the deployment
 Every azure resource is created by an IaC deployment. I looked at the creation story, under this(**testdeploy123**) resource group's deployment blade. I found one deployment:**interntestdeploy2026** with status "Succeeded". Start time: *24/05/2026, 22:42:25*, which is the start of any incident timeline. The name of this deployment told me who ran it. The input blade of this deployment, also showed which parameters were used. This tells that the resource was deployed by a intern which matches the finding of my previous step.
+
 ![deployment](/evidence/w1_deployment.png)
+
 ![deployment_inputs](/evidence/w1_deployment_inputs.png)
 
 ### Stage 4: Examine the policy
 A naming policy existed on the subscription and was active, yet the resource got created anyway. The **Effect** parameter was set to **Audit**, which logs violations, instead of **Deny**, which blocks them.
+
 ![policy_exists](/evidence/w1_policy_exists.png)
+
 ![policy_parameter](/evidence/w1_policy_in_audit.png)
 
 ## What surprised me
