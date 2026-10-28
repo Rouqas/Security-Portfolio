@@ -29,7 +29,7 @@ A naming policy existed on the subscription and was active, yet the resource got
 ![policy_exists](/evidence/w1_policy_exists.png)
 ![policy_parameter](/evidence/w1_policy_in_audit.png)
 
-## What broke / what surprised me
+## What surprised me
 Navigating the live azure environment and understanding different components(eg. subscriptions, resource groups, resource, deployments, tags etc) took me some time. Doing so helped me understand hierarcy, infrastruce and how resources are organised in the environment. It was nice that this simple things enabled me investigate the creator/ owner of a resource, the time of creation, tags and policies assigned to it. Initially, I thought there was no naming policy, but looking at the policies blade under that resource group, I found there was a naming policy. The logs also showed that the name was non-compilant, but still it didn't stop the creation. 
 
 ## Findings and recommendations
