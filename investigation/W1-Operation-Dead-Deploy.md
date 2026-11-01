@@ -12,21 +12,28 @@ Live multi-user Azure training tenant with Reader access
 
 ### Stage 1: Identify the non-compilant resource group
  Under our designated subscription while scanning the resource groups, i identified a resource group that didn't follow the established naming convention. The resource group name was: **testdeploy123**, which was inconsistent with the naming format used by other resource groups in the subscription.
+
 ![naming_discrepency](/evidence/w1_naming_discrepency.png)
 
 ### Stage 2: Inspect the payload
  Under **testdeploy123** resource group, only one resource was found. I found Several tags under this resource: owner, cost-center and intern-flag and environment. These tags suggested that this resource was associated with an intern.
+
 ![found_resource](/evidence/w1_found_resource.png)
+
 ![resource_tags](/evidence/w1_resource_tags.png)
 
 ### Stage 3: Trace the deployment
 Every azure resource is created by an IaC deployment. I examined the creation story, under this(**testdeploy123**) resource group's deployment blade. I found one deployment named **interntestdeploy2026** with status "Succeeded". The deployment start time: *24/05/2026, 22:42:25*. I then examined the deployment's input parameters, which provided further context about the deployment. The deployment name and parameters suggested that it was associated with an intern, consistent with the tags identified earlier.
+
 ![deployment](/evidence/w1_deployment.png)
+
 ![deployment_inputs](/evidence/w1_deployment_inputs.png)
 
 ### Stage 4: Examine the policy
 A naming policy existed on the subscription and was active, yet the resource got created anyway. The **Effect** parameter was set to **Audit**, which logs violations, instead of **Deny**, which blocks them. This explained why the resource group had been created despite not meeting the naming requirements.
+
 ![policy_exists](/evidence/w1_policy_exists.png)
+
 ![policy_parameter](/evidence/w1_policy_in_audit.png)
 
 ## What surprised me
