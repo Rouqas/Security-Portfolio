@@ -12,32 +12,40 @@ Live, multi-user Azure training tenant with read-only access.
 
 ![all_app_registrations](/evidence/w2_1_app_registrations.png)
 <p align="center">Fig. 1</p>
+
 ![internal_note](/evidence/w2_2_internal_note.png)
 <p align="center">Fig. 2</p>
+
 ### Step 2: Escalate > Created New Client Secret
 Under that legacy app's registration, I opened Certificates & secrets blade where I noticed a client secret with an expiry date(31/12/2099) in 73 years (fig. 3). It suggests that the attacker might create this key, to get higher privileged access as service principal(fig. 4) rather than staying as the user who has only owner rights for the app. Attacker not only intended to have elevated access without the need of signing in as the user but also to have indefinite access.
 
 ![certificates_and_secrets](/evidence/w2_3_secrets_no_expiration.png)
 <p align="center">Fig. 3</p>
+
 ![app_elevated_access](/evidence/w2_4_apps_elevated_access.png)
 <p align="center">Fig. 4</p>
+
 ### Step 3: Pivot > Rogue App's Service Principal Set to Owner
 Going back to App Registrations page, newly created app registration can be found. Incident team confirmed that it was created by the attacker.Inside it, under 'Branding & properties' blade, a note was left by incident team(fig. 5). Under the legacy app's registration in Owners blade, a service principal(linked to newly created app) was listed as the legacy app's owner(fig. 6). Drawing from these 2 evidence: The Owners list on the legacy app held a service principal belonging to a second, attacker-created app, which meant they could mint fresh credentials indefinitely.
 
 ![app_owner](/evidence/w2_5_app_owner.png)
 <p align="center">Fig. 5</p>
+
 ![new_app_note](/evidence/w2_6_newAppNote.png)
 <p align="center">Fig. 6</p>
+
 ### Step 4: Persistence > Creating Custom Scope
 Under legacy app's registration, on 'Expose an API' blade, a custom scope was published(fig. 7). This turns the legacy app into a callable backend resource, which means the attacker's own app can request delegated access to it. The Expose an API blade only defines the scope. No durable access exists yet at this point. The persisting artifact, an OAuth is only created later, when a user is tricked into consenting.
 
 ![expose_an_api](/evidence/w2_7_expose_an_api.png)
 <p align="center">Fig. 7</p>
+
 ### Step 5: Loot > Consent-phishing URL and Confused Deputy
  In rogue app's registration, under Authentication blade, 2 redirect URI was found (fig. 9). Combining the rogue app's client ID, that redirect URI and the exposed API scope produces a working phishing URL. A victim who is already signed in on a corporate device clicks Accept on a consent prompt, the rogue app gets a delegated token scoped to exactly that exposed API, acting as that user. This is consent phishing which bypasses all the steps of a regular credential phishing. While that does NOT get the legacy app's application permissions, it could allow for the attacker to act as the user on the legacy apps backend code to run a sync that does utilize the privileged API permissions. More dangerous part is: the resulting OAuth2PermissionGrant is not removed by a password rese nor by revoking sessions nor by enforcing MFA. Most standard containment playbooks leaves it in place.
 
 ![redirect_URI](/evidence/w2_8_redirectURI.png)
 <p align="center">Fig. 8</p>
+
 ![redirect_URI2](/evidence/w2_9_redirectURI2.png)
 <p align="center">Fig. 9</p>
 
