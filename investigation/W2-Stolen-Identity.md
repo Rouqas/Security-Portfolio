@@ -66,17 +66,17 @@ The investigation identified several potential weaknesses in the tenant's identi
 4. Potential consent-phishing preparation: A custom API scope and redirect URI configurations suggested the possibility of further OAuth-based attacks.
 
 ### Recommendations
-. Revoke the client secret 
-· Remove the rogue service principal from Owners 
-· Delete the custom exposed API scope 
-· Revoke the OAuth2PermissionGrant explicitly, because containment does not remove it 
-· Remove the attacker redirect URI 
-· Review and reduce the Graph application permissions 
-· Disable default user app registration 
-· Audit every app registration's Owners list the same way directory role membership is audited 
-· Alert on new client secrets and new redirect URIs.
-. Enforce least privilege access
-. Phishing resistant MFA should be considered, instead of regular MFA. For service principal, instead of using client secret, stronger authentication method like certificate or, Managed Identity should be used
+- Revoke the client secret 
+- Remove the rogue service principal from Owners 
+- Delete the custom exposed API scope 
+- Revoke the OAuth2PermissionGrant explicitly, because containment does not remove it 
+- Remove the attacker redirect URI 
+- Review and reduce the Graph application permissions 
+- Disable default user app registration 
+- Audit every app registration's Owners list the same way directory role membership is audited 
+- Alert on new client secrets and new redirect URIs.
+- Enforce least privilege access
+- Phishing resistant MFA should be considered, instead of regular MFA. For service principal, instead of using client secret, stronger authentication method like certificate or, Managed Identity should be used
 
 ## What I learned
 This investigation strengthened my understanding of Microsoft Entra ID, particularly the relationship between user identities, Service Principals, client credentials and API permissions.
