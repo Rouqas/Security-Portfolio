@@ -10,7 +10,7 @@ Tools used:
 - Azure Resource Graph using KQL - Tenant wide query for analysing RBAC
 - Privileged Identity Management (PIM) - Activate and analyse eligible assignments
 
-#### Finding 1: Single principle, Owner of multiple resources | IAM Blade
+### Finding 1: Single principle, Owner of multiple resources | IAM Blade
 The audit started with inspecting IAM blade at different scope levels of this tenant. It is time-consuming to look into each role under each scope(subscription , resource group , resources). A **role assignment** csv file was supplied which was downloaded at subscription level by a privileged account. The role assignments report includes active permissions inside of an subscription and its resources. Analysing the report, an account was found with 'Owner' role across a number of resourses (subscription, resource groups).
 
 ![fig. 1](/evidence/w3_1_roleAssignment.png)
@@ -52,9 +52,9 @@ While expoloring the PIM page, under My roles > Azure resources I found a hidden
 
 I activated the resource group and confirmed the activation through PIM's audit history.
 
-![fig. 1](/evidence/w3_6.png)
+![fig. 6](/evidence/w3_6.png)
 <p align="center">Fig. 6</p>
-![fig. 1](/evidence/w3_7_downloadRoleAssignment.png)
+![fig. 7](/evidence/w3_7_downloadRoleAssignment.png)
 <p align="center">Fig. 7</p>
 
 Then, I went to activated resource group's IAM page and downloaded its role assignments. The role assignment file revealed an interesting details: owner of this resource group was the over provisioned account previously found in this audit.
