@@ -54,6 +54,7 @@ I activated the resource group and confirmed the activation through PIM's audit 
 
 ![fig. 6](/evidence/w3_6.png)
 <p align="center">Fig. 6</p>
+
 ![fig. 7](/evidence/w3_7_downloadRoleAssignment.png)
 <p align="center">Fig. 7</p>
 
