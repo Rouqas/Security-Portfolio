@@ -1,4 +1,4 @@
-# Azure Role-Based Access Control (RBAC) Audit
+# Azure Role-Based Access Control(RBAC) Audit
 
 ## Executive summary
 
@@ -24,29 +24,24 @@ This audit reviewed Azure role-based access control (RBAC) assignments in a live
 
 ### F1: Single principal holding Owner across multiple scopes
 
-**Observation**
 I began by inspecting the IAM blade at different scope levels. The supplied subscription-level role assignment export lists the active permissions within the subscription and its resources. Analysing the export, I found one account holding the Owner role across several scopes: the subscription and multiple resource groups.
-
-**Evidence**
-Fig. 1
 
 ![fig. 1](/evidence/w3_1_roleAssignment.png)
 <p align="center"><em>Fig. 1: Subscription role assignment export</em></p>
 
 The IAM export shows which role a group holds at each scope, but not who is in the group. It therefore cannot show whether an individual member has excessive access. This method may also miss orphaned assignments (where the account has been deleted but the role assignment remains).
 
-**Risk**
+**Risk:**
 Owner grants full control of a resource, including the ability to assign roles to others. If this account is compromised, the impact extends to every scope where it holds Owner.
 
-**Severity**
+**Severity:**
 High
 
-**Recommendation**
+**Recommendation:**
 Review whether this account needs Owner at each scope. Apply least privilege by granting the narrowest job-function role at the narrowest scope and revoke any unnecessary assignments. Move any remaining standing privileged access to PIM-eligible assignments.
 
 ### F2: Orphaned role assignment in the production resource group
 
-**Observation**
 To get more detail at each scope, I used Azure CLI. Although CLI output is restricted to auditor's account permission. In the Azure portal, I opened Cloud Shell, selected PowerShell and ran:
 
 ```
@@ -58,38 +53,36 @@ In the production resource group, one assignment had a principalId with a blank 
 ![fig. 2](/evidence/w3_2_orphaned.png)
 <p align="center"><em>Fig. 2: Orphaned assignment in CLI output</em></p>
 
-**Risk**
+**Risk:**
 
 - **Restored accounts regain access silently.** A deleted user stays in the Entra recycle bin for 30 days. If it is restored within that time, it keeps the same object ID, and every orphaned assignment applies to it again without being re-approved.
 - **Noise in access reviews.** Unresolved entries make reviews slower and can hide assignments that matter.
 - **Role assignment limit.** Orphaned assignments count towards each subscription's limit on role assignments.
 
-**Severity**
+**Severity:**
 Medium
 
-**Recommendation**
+**Recommendation:**
 Remove the orphaned assignment. Run the same command against each resource group to find any other orphaned assignments.
 
 ### F3: Tenant-wide view of role assignments (methodology observation)
 
-**Observation**
 The IAM export and CLI work one scope at a time. Azure Resource Graph lets me audit the whole tenant with a single query, because it queries the **Azure Resource Manager database** across the entire tenant at once. This makes it possible to check every subscription for compromised or orphaned access in a single KQL query. In the Azure portal, I opened **Resource Graph Explorer** and queried the `authorizationresources` table.
 
 ![fig. 3](/evidence/w3_3_ARG_KQL.png)
 <p align="center"><em>Fig. 3: Resource Graph query on role assignments</em></p>
 
-**Risk**
+**Risk:**
 None identified. This entry documents an audit method rather than a security issue.
 
-**Severity**
+**Severity:**
 Informational
 
-**Recommendation**
+**Recommendation:**
 Extend the query to filter for privileged roles, find the same principal assigned redundantly across multiple scopes, or list custom roles that are not in use.
 
 ### F4: Possible leftover temporary role assignment
 
-**Observation**
 The first three methods only show active assignments and miss eligible ones. PIM shows whether each assignment is Active, Eligible or Expired. In PIM, I went to Manage > Azure resources, selected the subscription and resource group, and chose Manage resource. Under Assignments, I exported an audit report showing the assignment state (Eligible or Active) and the user or group name for that resource group.
 
 In the export, one principal in this resource group carried a "delete" label, and its assignment was not inherited. My inference is that someone created this assignment manually for a temporary task and did not remove it afterwards. I have not confirmed this.
@@ -97,18 +90,17 @@ In the export, one principal in this resource group carried a "delete" label, an
 ![fig. 4](/evidence/w3_4_PIM.png)
 <p align="center"><em>Fig. 4: PIM assignments export</em></p>
 
-**Risk**
+**Risk:**
 A temporary assignment left in place gives persistent access that nobody is tracking, and could be exploited.
 
-**Severity**
+**Severity:**
 Medium. The assignment was active at the time of the audit.
 
-**Recommendation**
+**Recommendation:**
 Investigate the assignment and revoke it if it is no longer needed. For temporary tasks, use time-limited PIM-eligible assignments so that access does not persist after the task is complete.
 
 ### F5: Over-provisioned account owning a hidden resource group
 
-**Observation**
 While exploring PIM, under My roles > Azure resources, I found a hidden resource group on which I held an eligible role.
 
 I activated the eligible role and confirmed the activation in PIM's audit history. I then opened the resource group's IAM page and downloaded its role assignments. The export showed that the Owner of this resource group was the same account identified in F1, which already held Owner access across multiple scopes.
@@ -125,13 +117,13 @@ I activated the eligible role and confirmed the activation in PIM's audit histor
 ![fig. 8](/evidence/w3_8.png)
 <p align="center"><em>Fig. 8: Resource group Owner assignment</em></p>
 
-**Risk**
+**Risk:**
 The account identified in F1 also owns a resource group that was hidden from the earlier review, so its total privileged access is wider than the first three methods showed.
 
-**Severity**
+**Severity:**
 High
 
-**Recommendation**
+**Recommendation:**
 As for F1: review and scope down this account's Owner access and move any remaining privileged access to PIM-eligible assignments.
 
 ## Methodology comparison
