@@ -1,108 +1,175 @@
-# Azure Role-Based Access Control Audit
+# Azure Role-Based Access Control (RBAC) Audit
+
+## Executive summary
+
+This audit reviewed Azure role-based access control (RBAC) assignments in a live, multi-user Azure training tenant to establish who had access to which resources and why. Four methods were combined: the IAM role assignment export, Azure CLI, Azure Resource Graph (KQL) and Privileged Identity Management (PIM). The audit identified two high-severity findings, two medium-severity findings and one methodology observation. The highest risk is a single account holding Owner access across multiple scopes, including a resource group that was only reachable through a PIM-eligible role.
 
 ## Scope and methodology
 
-This audit reviewed Azure RBAC assignments within an live, multi-user Azure training tenant. The goal was to find out who had access to what resources and why. The assessment was conducted using Reader-level access along with a PIM-eligible role.
+**Scope:** Azure RBAC role assignments at subscription, resource group and resource level in a live, multi-user training tenant.
 
-Tools used:
-- Access Control (IAM) - Role Assignment Export
-- Azure CLI - Role Assignment Enumeration
-- Azure Resource Graph using KQL - Tenant wide query for analysing RBAC
-- Privileged Identity Management (PIM) - Activate and analyse eligible assignments
+**Access used:** Reader-level access plus a PIM-eligible role. A subscription-level role assignment export (CSV), downloaded by a privileged account, was also supplied for the audit.
 
-### Finding 1: Single principle, Owner of multiple resources | IAM Blade
+**Tools:**
 
-The audit started with inspecting IAM blade at different scope levels of this tenant. It is time-consuming to look into each role under each scope(subscription , resource group , resources). A **role assignment** csv file was supplied which was downloaded at subscription level by a privileged account. The role assignments report includes active permissions inside of an subscription and its resources. Analysing the report, an account was found with 'Owner' role across a number of resourses (subscription, resource groups).
+| Tool | Purpose |
+|------|---------|
+| Access control (IAM), role assignment export | Review active assignments at each scope |
+| Azure CLI | Enumerate role assignments per resource group |
+| Azure Resource Graph (KQL) | Query role assignments across the tenant in a single query |
+| Privileged Identity Management (PIM) | Review and activate eligible assignments |
+
+
+## Findings
+
+### F1: Single principal holding Owner across multiple scopes
+
+**Observation**
+I began by inspecting the IAM blade at different scope levels. The supplied subscription-level role assignment export lists the active permissions within the subscription and its resources. Analysing the export, I found one account holding the Owner role across several scopes: the subscription and multiple resource groups.
+
+**Evidence**
+Fig. 1
 
 ![fig. 1](/evidence/w3_1_roleAssignment.png)
-<p align="center">Fig. 1</p>
+<p align="center"><em>Fig. 1: Subscription role assignment export</em></p>
 
-This audit method shows what role a group has at which scope, but members of the group can't be knoown. Hence, it can't be known whether an account has over provisioned access. This method might also miss **orphans** (accounts deleted but role assignment persists).
+The IAM export shows which role a group holds at each scope, but not who is in the group. It therefore cannot show whether an individual member has excessive access. This method may also miss orphaned assignments (where the account has been deleted but the role assignment remains).
 
-### Finding 2: Orphaned Account | Azure CLI
+**Risk**
+Owner grants full control of a resource, including the ability to assign roles to others. If this account is compromised, the impact extends to every scope where it holds Owner.
 
-To get more information about role assignments at each scope, Azure CLI can be utilised. Although CLI output is restricted to auditor's account permission. In Azure portal, I opened the CLI and selected powershell and ran this command: 
-"az role assignment list --resource-group ResourceGroupName"
-A principalId was found with empty resource name, for production resource group. It is an **orphan account**, a role assignment linked to a deleted account. These redundant role assignments need to be deleted, if a new principal manages to get same objectId as the orphan account, it will inherit the existing permissions automatically, without needing provision and stay unnoticed. 
-Similarly, this command can be repeated for other resource groups to find orphaned accounts which can be exploited.
+**Severity**
+High
+
+**Recommendation**
+Review whether this account needs Owner at each scope. Apply least privilege by granting the narrowest job-function role at the narrowest scope and revoke any unnecessary assignments. Move any remaining standing privileged access to PIM-eligible assignments.
+
+### F2: Orphaned role assignment in the production resource group
+
+**Observation**
+To get more detail at each scope, I used Azure CLI. Although CLI output is restricted to auditor's account permission. In the Azure portal, I opened Cloud Shell, selected PowerShell and ran:
+
+```
+az role assignment list --resource-group <ResourceGroupName>
+```
+
+In the production resource group, one assignment had a principalId with a blank principalName. This is an **orphaned role assignment**: the identity it was granted to has been deleted, but the assignment was never removed.
 
 ![fig. 2](/evidence/w3_2_orphaned.png)
-<p align="center">Fig. 2</p>
+<p align="center"><em>Fig. 2: Orphaned assignment in CLI output</em></p>
 
-### Finding 3: Tenant-wide View for Role Assignments| Azure Resource Graph
+**Risk**
 
-With Azure Resource Graph we can audit the whole tenant with a single query whereas previous 2 methods allow to work with one scope at a time. It allows to query the raw **Azure Resource Manager database** across the entire tenant simultaneously. This allows to instantly sweep every subscription for compromised or orphaned access in a single KQL execution. On azure portal, opening **Resource Graph Explorer** I queried the authorizationresources table
+- **Restored accounts regain access silently.** A deleted user stays in the Entra recycle bin for 30 days. If it is restored within that time, it keeps the same object ID, and every orphaned assignment applies to it again without being re-approved.
+- **Noise in access reviews.** Unresolved entries make reviews slower and can hide assignments that matter.
+- **Role assignment limit.** Orphaned assignments count towards each subscription's limit on role assignments.
+
+**Severity**
+Medium
+
+**Recommendation**
+Remove the orphaned assignment. Run the same command against each resource group to find any other orphaned assignments.
+
+### F3: Tenant-wide view of role assignments (methodology observation)
+
+**Observation**
+The IAM export and CLI work one scope at a time. Azure Resource Graph lets me audit the whole tenant with a single query, because it queries the **Azure Resource Manager database** across the entire tenant at once. This makes it possible to check every subscription for compromised or orphaned access in a single KQL query. In the Azure portal, I opened **Resource Graph Explorer** and queried the `authorizationresources` table.
 
 ![fig. 3](/evidence/w3_3_ARG_KQL.png)
-<p align="center">Fig. 3</p>
+<p align="center"><em>Fig. 3: Resource Graph query on role assignments</em></p>
 
-This KQL command can be further modified to the privileged roles, find the same principal assigned redundantly across multiple scopes, or list custom roles nobody is using.
+**Risk**
+None identified. This entry documents an audit method rather than a security issue.
 
-### Finding 4: Forgot to Remove Temporary Role Assignment: Privileged Identity Management(PIM)
+**Severity**
+Informational
 
-The above 3 methods only showed active assignments on resources, missing eligible to be active assignments. PIM shows whether role assignments are Active, Eligible, or Expired. Navigating to Privileged Identity Management(PIM) page, under Manage > Azure resources, specifying the subscription and resource group, I selected Manage resources. Then, going to Assignments, I exported an audit report. Now,we can see assignment state(eligible/active), user/group name under that resource group.
+**Recommendation**
+Extend the query to filter for privileged roles, find the same principal assigned redundantly across multiple scopes, or list custom roles that are not in use.
+
+### F4: Possible leftover temporary role assignment
+
+**Observation**
+The first three methods only show active assignments and miss eligible ones. PIM shows whether each assignment is Active, Eligible or Expired. In PIM, I went to Manage > Azure resources, selected the subscription and resource group, and chose Manage resource. Under Assignments, I exported an audit report showing the assignment state (Eligible or Active) and the user or group name for that resource group.
+
+In the export, one principal in this resource group carried a "delete" label, and its assignment was not inherited. My inference is that someone created this assignment manually for a temporary task and did not remove it afterwards. I have not confirmed this.
 
 ![fig. 4](/evidence/w3_4_PIM.png)
-<p align="center">Fig. 4</p>
+<p align="center"><em>Fig. 4: PIM assignments export</em></p>
 
-Inside the export, I noticed a principal name in this resource group with a 'delete' label on it. This role wasn't inherited either, which further makes me think someone manually created this assignment for a temporary task, but forgot to remove it later.
+**Risk**
+A temporary assignment left in place gives persistent access that nobody is tracking, and could be exploited.
 
-### Finding 5- An Over-provisioned Account: Owner of a Hidden Resource group
+**Severity**
+Medium. The assignment was active at the time of the audit.
 
-While expoloring the PIM page, under My roles > Azure resources I found a hidden resource group which was eligible to activate.
+**Recommendation**
+Investigate the assignment and revoke it if it is no longer needed. For temporary tasks, use time-limited PIM-eligible assignments so that access does not persist after the task is complete.
+
+### F5: Over-provisioned account owning a hidden resource group
+
+**Observation**
+While exploring PIM, under My roles > Azure resources, I found a hidden resource group on which I held an eligible role.
+
+I activated the eligible role and confirmed the activation in PIM's audit history. I then opened the resource group's IAM page and downloaded its role assignments. The export showed that the Owner of this resource group was the same account identified in F1, which already held Owner access across multiple scopes.
 
 ![fig. 5](/evidence/w3_5.png)
-<p align="center">Fig. 5</p>
-
-I activated the resource group and confirmed the activation through PIM's audit history.
+<p align="center"><em>Fig. 5: Eligible role in PIM</em></p>
 
 ![fig. 6](/evidence/w3_6.png)
-<p align="center">Fig. 6</p>
+<p align="center"><em>Fig. 6: Activation in PIM audit history</em></p>
 
 ![fig. 7](/evidence/w3_7_downloadRoleAssignment.png)
-<p align="center">Fig. 7</p>
-
-Then, I went to activated resource group's IAM page and downloaded its role assignments. The role assignment file revealed an interesting details: owner of this resource group was the over provisioned account previously found in this audit.
+<p align="center"><em>Fig. 7: Downloading role assignments</em></p>
 
 ![fig. 8](/evidence/w3_8.png)
-<p align="center">Fig. 8</p>
+<p align="center"><em>Fig. 8: Resource group Owner assignment</em></p>
 
-### Methodology Comparison
+**Risk**
+The account identified in F1 also owns a resource group that was hidden from the earlier review, so its total privileged access is wider than the first three methods showed.
 
-|               Method                    |                         Sees                         |               Misses               |
-|-----------------------------------------|------------------------------------------------------|------------------------------------|
-| IAM blade and role assignments export   | Active assignments at scope, inherited, children     | Group members, orphaned principals |
-| Azure CLI                               | Same, plus null principalName (orphans)              | One scope per command              |
-| Resource Graph (KQL)                    | Whole tenant in one query                            | Eligible assignments               |
-| PIM export                              | Eligible and active access, audit history of eligible roles | Assignments outside PIM            |
+**Severity**
+High
 
-### Findings
-**High Severity**
-- Single principle was holding privileged role for multiple resources
-- An over-provisioned account was an owner of a resource group which was hidden under Privilege Identity Management’s eligible role.
+**Recommendation**
+As for F1: review and scope down this account's Owner access and move any remaining privileged access to PIM-eligible assignments.
 
-**Medium Severity**
-- A principal was deleted but role assignment linked to it, remained. Orphan accounts has potential to be exploited, they create confusions and take up spaces in azure resource manager database, potentially affecting role assignment limit, if there is any.
-- A possible temporary role assignment was discovered, which was active at the time of audit. 
+## Methodology comparison
 
-## Recommendations: 
+| Method | Sees | Misses |
+|--------|------|--------|
+| IAM blade and role assignment export | Active assignments at the selected scope, including inherited and child scopes | Group members, orphaned principals |
+| Azure CLI | Same, plus a blank principalName (orphans) | One scope per command |
+| Resource Graph (KQL) | The whole tenant in one query | Eligible assignments |
+| PIM export | Eligible and active access, and the audit history of eligible roles | Assignments outside PIM |
 
-- Revoke orphaned role assignments. 
-- Move standing privileged access to PIM-eligible with MFA enforcement, justification, and time limited activation. 
-- Assign to groups rather than users. 
-- Role assignment should never be dependent only on one method. RBAC should be checked quarterly at different scope levels and using combination of methods: IAM blade, exporting role assignments, Azure CLI, KQL in Azure Resource Group, PIM reporting.
-- Investigate every role assignment, follow least privilege access when assigning roles and revoke any unnecessary assignment. Scope down any over provisioned role, grant narrowest job-function role at the narrowest scope.
-- For doing temporary jobs assign eligible role assignment in PIM. It will eliminate the opportunity of persistence and remove potential exploit opportunity if admin forgets to delete the account after job completion.
-- Run this audit on a quarterly cadence and treat the output as a ticket queue so it actually gets done.
+## Summary of findings
+
+| ID | Finding | Severity |
+|----|---------|----------|
+| F1 | Single principal holding Owner across multiple scopes | High |
+| F5 | Over-provisioned account owning a hidden resource group | High |
+| F2 | Orphaned role assignment in the production resource group | Medium |
+| F4 | Possible leftover temporary role assignment | Medium |
+| F3 | Tenant-wide view of role assignments | Informational |
+
+## Recommendations
+
+1. **Apply least privilege.** Investigate every role assignment and revoke any that are unnecessary. Scope down over-provisioned roles by granting the narrowest job-function role at the narrowest scope. (F1, F5)
+2. **Move standing privileged access to PIM.** Make privileged roles PIM-eligible, with MFA enforcement, justification and time-limited activation. (F1, F5)
+3. **Remove orphaned role assignments.** (F2)
+4. **Use PIM-eligible assignments for temporary tasks**, so access does not persist if an admin forgets to remove it when the task is complete. (F4)
+5. **Assign roles to groups rather than individual users.**
+6. **Audit quarterly with more than one method.** Review RBAC at different scope levels using a combination of the IAM blade, role assignment exports, Azure CLI, KQL in Azure Resource Graph and PIM reporting. Track the output as a ticket queue so the actions get done.
 
 ## What surprised me
 
-Using KQL in Azure Resource graph allowed to query at any scope level which was efficient compared to using IAM and CLI for privilege audit. 
-I was surprised to see that how different methods of auditing enabled me to look at role assignments from different angles, simulataneously each method had its limitations. Therefore, using those methods combinedly is essential to get a full picutre of the audit. At the last stage of this audit, I spent a few hours to understand the PIM's eligible role and match the owner of the hidden resource group's with previously found identity which was owner of multiple resources.
+Using KQL in Azure Resource Graph let me query at any scope level, which was much more efficient than using the IAM blade and CLI for a privilege audit.
+
+I was surprised by how each method let me look at role assignments from a different angle, while each also had its own limitations. Combining them was essential to get the full picture. In the last stage of the audit, I spent a few hours understanding PIM eligible roles and matching the owner of the hidden resource group with the identity I had already found holding Owner across multiple resources.
 
 ## What I learned
 
-- Effective privilege audits require investigation at different scopes, combining a couple of methods including IAM export, CLI, KQL in Azure Resource graph. There is no one best method to do this audit.
-- Role assignment can still exists even if the identity linked to it gets deleted, hence creates a vulnerability which can stay unnoticed if not investigated intentionally.
-- Moving privileged access role to timebound PIM-eligible role, reduce the chance of potential exploitation.
-- I would assign privileged access role to PIM-eligible instead of directly granting privileged access
+- An effective privilege audit needs investigation at different scopes, combining several methods such as the IAM export, CLI and KQL in Azure Resource Graph. There is no single best method.
+- A role assignment can still exist after the identity linked to it has been deleted. This creates a vulnerability that can go unnoticed unless you look for it intentionally.
+- Moving privileged roles to time-bound PIM-eligible assignments reduces the chance of exploitation. In future, I would make privileged roles PIM-eligible instead of granting them directly.
