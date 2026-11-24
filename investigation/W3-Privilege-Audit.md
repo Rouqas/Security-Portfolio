@@ -163,5 +163,5 @@ I was surprised by how each method let me look at role assignments from a differ
 ## What I learned
 
 - An effective privilege audit needs investigation at different scopes, combining several methods such as the IAM export, CLI and KQL in Azure Resource Graph. There is no single best method.
-- A role assignment can still exist after the identity linked to it has been deleted. This creates a vulnerability that can go unnoticed unless you look for it intentionally.
+- A role assignment can still exist after the identity linked to it has been deleted. This creates a vulnerability that can go unnoticed unless someone looks for it intentionally.
 - Moving privileged roles to time-bound PIM-eligible assignments reduces the chance of exploitation. In future, I would make privileged roles PIM-eligible instead of granting them directly.
